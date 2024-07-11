@@ -1,9 +1,7 @@
-"""Optionally define a custom strategy.
-
-Needed only when the strategy is not yet implemented in Flower or because you want to
-extend or modify the functionality of an existing strategy.
+"""Custom Ditto strategy.
 """
 import flwr as fl
+from omegaconf import DictConfig, OmegaConf
 from flwr.common import (
     EvaluateIns,
     EvaluateRes,
@@ -18,6 +16,7 @@ from flwr.common import (
 )
 from flwr.server.strategy.aggregate import aggregate_inplace
 from flwr.common.logger import log
+from logging import WARNING
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from typing import Optional, Callable, Tuple, Dict, List, Union
@@ -40,6 +39,7 @@ class Ditto(fl.server.strategy.strategy.Strategy):
     def __init__(
         self,
         *, 
+        cfg: DictConfig = {},
         fraction_fit: float = 1.0,
         fraction_evaluate: float = 1.0,
         min_fit_clients: int = 2,
@@ -180,10 +180,7 @@ class Ditto(fl.server.strategy.strategy.Strategy):
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         """Aggregate fit results using weighted average."""
-        print(f"Failures: {failures}")
         if not results:
-            print("exiting")
-            print(results)
             return None, {}
         # Do not aggregate if there are failures and failures are not accepted
         if not self.accept_failures and failures:

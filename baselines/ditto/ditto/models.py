@@ -1,32 +1,15 @@
-"""Define our models, and training and eval functions.
-
-If your model is 100% off-the-shelf (e.g. directly from torchvision without requiring
-modifications) you might be better off instantiating your  model directly from the Hydra
-config. In this way, swapping your model for  another one can be done without changing
-the python code at all
+"""Defining our models, and training and eval functions.
 """
-
-
-# Will need development to add all the modules and understand how hydra can help
-
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# import torchvision.transforms as transforms
-# import torchvision.datasets as datasets
-# from torchvision.datasets import EMNIST
 from torch.utils.data import DataLoader
 from typing import List
 from collections import OrderedDict
-# import random
-# from matplotlib import pyplot as plt
-# from math import comb
-# from itertools import combinations
-# import flwr as fl
-# from flwr.common import Metrics
-# Local import
+
+
+# Need to change to have the different models for the different datasets
 
 class Net(nn.Module):
     """
@@ -78,7 +61,6 @@ def train(net, trainloader, epochs: int, option = None):
         option - a flag to enable alternative training regimes such as ditto
     """
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #sum_risks = None # Placeholder for fedminmax return
     def ditto_manual_update(lr, lam, glob):
         """ Manual parameter updates for ditto """
         with torch.no_grad():
@@ -89,14 +71,6 @@ def train(net, trainloader, epochs: int, option = None):
                 p.copy_(new_p)
                 counter += 1
             return
-
-    # def fedminmax_manual_update(lr, risk):
-    #     """ Manual parameter updates for FedMinMax strategy"""
-    #     with torch.no_grad():
-    #         for p in net.parameters():
-    #             new_p = p - (lr*(p.grad)*risk)
-    #             p.copy_(new_p)
-    #         return
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())
@@ -145,28 +119,18 @@ def test(net, testloader, sensitive_labels=[]):
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     criterion = torch.nn.CrossEntropyLoss()
     correct, total, loss = 0, 0, 0.0
-    # group_performance = [[0,0] for label in range(len(sensitive_labels))] # preset for EOD calc, will store the performance
     net.eval()
     with torch.no_grad():
         for i, data in enumerate(testloader, 0):
-            # Cycles through in batches
+            # Cycles through in batches collecting the results
             images, labels = data["img"].to(DEVICE), data["label"].to(DEVICE)
             outputs = net(images)
             loss += criterion(outputs, labels).item()
             _, predicted = torch.max(outputs.data, 1)
-            # Comparing the predicted to the inputs in order to determine EOD
             matched = (predicted == labels)
-            # for label in range(len(sensitive_labels)):
-            #   labelled = (labels == label)
-            #   not_labelled = (labels != label)
-            #   group_performance[label][0] += (matched == labelled).sum()
-            #   group_performance[label][1] += (matched == not_labelled).sum()
             total += labels.size(0)
             correct += matched.sum().item()
-    # for index in range(len(group_performance)):
-    #     # Calculating EOD: P(Y.=1|A=1,Y=y) - P(Y.=1|A=0,Y=y) for each:
-    #     group_performance[index] = float((group_performance[index][0] - group_performance[index][1]) / total)
     loss /= len(testloader.dataset)
     accuracy = correct / total
 
-    return loss, accuracy #, group_performance
+    return loss, accuracy 
