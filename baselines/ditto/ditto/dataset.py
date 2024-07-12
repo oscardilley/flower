@@ -9,110 +9,93 @@ partitioned, please include all those functions and logic in the
 defined here of course.
 """
 
-
-#from collections import OrderedDict
-#from typing import Dict, List, Optional, Tuple
-#import numpy as np
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
 import torchvision.transforms as transforms
-# import torchvision.datasets as datasets
-# from torchvision.datasets import CIFAR10
-from torch.utils.data import DataLoader#, random_split
-# import random
-# from matplotlib import pyplot as plt
-# from math import comb
-# from itertools import combinations
-# import json
-# from datetime import timedelta
-# import time
-# start = time.perf_counter()
-# import flwr as fl
-# from flwr.common import Metrics
+from torch.utils.data import DataLoader
 from flwr_datasets import FederatedDataset
-from flwr_datasets.partitioner import DirichletPartitioner
+from flwr_datasets.preprocessor.divider import Divider
+from flwr_datasets.partitioner import DirichletPartitioner, NaturalIdPartitioner
+from flwr_datasets.visualization import plot_label_distributions
+import matplotlib as plt
+from flwr.common.logger import log
+from logging import WARNING
 
-pytorch_transforms = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    )
-
-def apply_transforms(batch):
-    """Apply transforms to the partition from FederatedDataset."""
-    batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
-    return batch
-
-def load_iid(num_clients, b_size):
-    """ 
-    Load iid split 
-
-    Inputs:
-        num_clients - the number of clients that require datasets
-        b_size - the batch size used
-
-    Outputs:
-        trainloaders - a list of pytorch DataLoader for 90% train sets indexed by client.
-        valloaders - a list of pytorch DataLoader for 10% test sets indexed by client.
-        testloader - a single DataLoader for the centralised testset
-        features - dataset information for displaying information.
+class ConfigErrorException(Exception):
+    pass
 
 
-
-        ADD SOME OF THE NEW FEATURES TO SHOW THE PARTITION
-
-    """
-    # Download and transform CIFAR-10 (train and test)
-    fds = FederatedDataset(dataset="cifar10", partitioners={"train": num_clients})
-    # Loading the central testset:
-    testset = fds.load_split("test") # central testset
-    testloader = DataLoader(testset.with_transform(apply_transforms), batch_size=b_size)
-    features = testset.features
-
-    trainloaders = []
-    valloaders = []
-    # Looping through each client, splitting train into train and val and turning into Pytorch DataLoader
-    for c in range(num_clients):
-        partition = fds.load_partition(c)
-        # Divide data on each node: 90% train, 10% validation
-        partition_train_test = partition.train_test_split(test_size=0.1)
-        partition_train_test = partition_train_test.with_transform(apply_transforms)
-        trainloaders.append(DataLoader(partition_train_test["train"], batch_size=b_size, shuffle=True))
-        valloaders.append(DataLoader(partition_train_test["test"], batch_size=b_size))
-    return trainloaders, valloaders, testloader, features
-
-def load_niid(num_clients, b_size):
-    """ 
-    Load niid split 
+def load_dataset(cfg):
+    """ Handling config options to return the correct dataloaders
     
-    Inputs:
-        num_clients - the number of clients that require datasets
-        b_size - the batch size used
-
-    Outputs:
-        trainloaders - a list of pytorch DataLoader for 90% train sets indexed by client.
-        valloaders - a list of pytorch DataLoader for 10% test sets indexed by client.
-        testloader - a single DataLoader for the centralised testset
-        features - dataset information for displaying information.
-
+    from Ditto paper: "We randomly split local data on each device into 72% train, 8% validation, 
+    and 20% test sets, and report all results on test data" For FEMNIST, all results reported
+    in the main paper are from the natural partition.
     """
-    # Statistical heterogeneity introduced using Dirichlet Partitioning:
-    partitioner = DirichletPartitioner(num_partitions=num_clients, partition_by="label",
-                                       alpha=0.5, min_partition_size=10,
-                                       self_balancing=True)
-    fds = FederatedDataset(dataset="cifar10", partitioners={"train": partitioner})
-    # Loading the central testset:
-    testset = fds.load_split("test") # central testset
-    testloader = DataLoader(testset.with_transform(apply_transforms), batch_size=b_size)
-    features = testset.features
+    # Transforms:
+    cifar10_transforms = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    femnist_transforms = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.5), (0.5))])
 
+    # Dividers used to handle case that resplitting is required
+    dividers = {"flwrlabs/femnist" : Divider(divide_config={"train":0.80, "test": 0.2}, divide_split="train"), 
+                "cifar10": None}
+
+    def apply_transforms(batch):
+        """Apply transforms to the partition from FederatedDataset."""
+        # can add some better, config based selection in here
+        if cfg.dataset.set == "cifar10":
+            batch["img"] = [cifar10_transforms(img) for img in batch["img"]]
+        elif cfg.dataset.set == "flwrlabs/femnist":
+            batch["img"] = [femnist_transforms(img) for img in batch["image"]]
+            batch["label"] = [label for label in batch["character"]]
+            del batch["character"]
+            del batch["image"]
+        else:
+            log(WARNING, "No data transform applied")
+        return batch
+
+    # Partitoning:
+    if cfg.dataset.partition == "iid":
+        fds = FederatedDataset(dataset=cfg.dataset.set, partitioners={"train": cfg.strategy.num_clients}, preprocessor = dividers[cfg.dataset.set])
+    elif cfg.dataset.partition == "dirichlet":
+        partitioner = DirichletPartitioner(num_partitions=cfg.strategy.num_clients, partition_by="label",
+                                    alpha=cfg.dataset.dirichlet.alpha, min_partition_size=cfg.dataset.dirichlet.min_partition,
+                                    self_balancing=bool(cfg.dataset.dirichlet.self_balancing))
+        fds = FederatedDataset(dataset=cfg.dataset.set, partitioners={"train": partitioner}, preprocessor = dividers[cfg.dataset.set])
+    elif cfg.dataset.partition == "natural":
+        partitioner = NaturalIdPartitioner(partition_by="writer_id")
+        fds = FederatedDataset(dataset=cfg.dataset.set, partitioners={"train":partitioner}, preprocessor = dividers[cfg.dataset.set])
+    else:
+        raise ConfigErrorException("Invalid Partition provided from Hydra")
+    
+    # Creating PyTorch loaders:
+    testset = fds.load_split("test") # central testset
+    testloader = DataLoader(testset.with_transform(apply_transforms), batch_size=cfg.dataset.batch_size)
+    features = testset.features
     trainloaders = []
     valloaders = []
-    # Looping through each client, splitting train into train and val and turning into Pytorch DataLoader
-    for c in range(num_clients):
-        partition = fds.load_partition(c)
-        # Divide data on each node: 90% train, 10% validation
-        partition_train_test = partition.train_test_split(test_size=0.1)
+    for c in range(cfg.strategy.num_clients):
+
+        partition = fds.load_partition(c) # this needs randomising for natural ID partitoning
+
+        # Divide data on each node based on the required train:validation split
+        partition_train_test = partition.train_test_split(test_size=cfg.dataset.validation_size)
         partition_train_test = partition_train_test.with_transform(apply_transforms)
-        trainloaders.append(DataLoader(partition_train_test["train"], batch_size=b_size, shuffle=True))
-        valloaders.append(DataLoader(partition_train_test["test"], batch_size=b_size))
+        trainloaders.append(DataLoader(partition_train_test["train"], batch_size=cfg.dataset.batch_size, shuffle=True))
+        valloaders.append(DataLoader(partition_train_test["test"], batch_size=cfg.dataset.batch_size))
+
+    # Visualisation
+    fig, ax, df = plot_label_distributions(
+        partitioner=fds.partitioners["train"],
+        label_name="character", # need to solve this through config, "label" for cifar10, "character" for femnist
+        plot_type="bar",
+        size_unit="absolute",
+        partition_id_axis="x",
+        legend=True,
+        verbose_labels=True,
+        cmap="tab20b",
+        title="Per Partition Labels Distributions"
+    )
+    fig.savefig("./Images/partitions.png",bbox_inches='tight')
+
     return trainloaders, valloaders, testloader, features

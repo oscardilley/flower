@@ -31,15 +31,18 @@ def main(cfg: DictConfig) -> None:
     print(f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}")
 
     # 2. Preparing dataset
-    trainloaders, valloaders, testloader, _ = dataset.load_iid(cfg.strategy.num_clients, cfg.dataset.batch_size)
-
-    # NEED TO DESIGN THE DATALOADER FOR HYDRA
+    trainloaders, valloaders, testloader, features = dataset.load_dataset(cfg=cfg)
 
     # 3. Defining clients
 
     # NEED TO USE CONFIG HERE TO SELECT CORRESPONDING MODEL/ MODEL OPTIONS
-
-    net = models.Net().to(DEVICE)
+    if cfg.dataset.set == "cifar10":
+        model = models.Cifar10Net()
+    elif cfg.dataset.set == "flwrlabs/femnist":
+        model = models.FEMNISTNet()
+    else:
+        raise dataset.ConfigErrorException("Invalid dataset passed through Hydra")
+    net = model.to(DEVICE)
     client_fn = client.gen_client_fn(trainloaders, valloaders, net, models.test, models.train) 
 
     # 4. Defining strategy
@@ -76,7 +79,7 @@ def main(cfg: DictConfig) -> None:
         min_evaluate_clients=int(cfg.strategy.num_clients*cfg.strategy.fraction_fit), # never sample less than this for evaluation
         min_available_clients=cfg.strategy.num_clients, # has to wait until all clients are available
         accept_failures = bool(cfg.strategy.accept_failures),
-        initial_parameters=fl.common.ndarrays_to_parameters(models.get_parameters(models.Net())),
+        initial_parameters=fl.common.ndarrays_to_parameters(models.get_parameters(model)),
         evaluate_fn=evaluate, # central evaluation function
         on_fit_config_fn=fit_config, # altering client behaviour
     )
