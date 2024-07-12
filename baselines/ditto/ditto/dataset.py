@@ -7,8 +7,12 @@ automatically -- e.g. as it is the case for many dataset in TorchVision) and
 partitioned, please include all those functions and logic in the
 `dataset_preparation.py` module. You can use all those functions from functions/methods
 defined here of course.
-"""
 
+
+# BEST TO ADD - CELEB A, FASHION MNIST as there are flwr labs hugging face versions!!!
+
+"""
+import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from flwr_datasets import FederatedDataset
@@ -74,11 +78,11 @@ def load_dataset(cfg):
     features = testset.features
     trainloaders = []
     valloaders = []
-    for c in range(cfg.strategy.num_clients):
-
-        partition = fds.load_partition(c) # this needs randomising for natural ID partitoning
-
-        # Divide data on each node based on the required train:validation split
+    rng = np.random.default_rng()
+    client_random_sampler = rng.choice(fds.partitioners["train"].num_partitions, size=cfg.strategy.num_clients, replace=False)
+    for c in client_random_sampler:
+        # Divide data of each client based on the required train:validation split
+        partition = fds.load_partition(c)
         partition_train_test = partition.train_test_split(test_size=cfg.dataset.validation_size)
         partition_train_test = partition_train_test.with_transform(apply_transforms)
         trainloaders.append(DataLoader(partition_train_test["train"], batch_size=cfg.dataset.batch_size, shuffle=True))
@@ -88,14 +92,16 @@ def load_dataset(cfg):
     fig, ax, df = plot_label_distributions(
         partitioner=fds.partitioners["train"],
         label_name="character", # need to solve this through config, "label" for cifar10, "character" for femnist
+        max_num_partitions=30,
         plot_type="bar",
         size_unit="absolute",
         partition_id_axis="x",
         legend=True,
+        legend_kwargs={"ncols": 3, "bbox_to_anchor": (1.25, 0.5), "fontsize":"small"},
         verbose_labels=True,
         cmap="tab20b",
-        title="Per Partition Labels Distributions"
+        title="Sample Partition Labels Distributions"
     )
-    fig.savefig("./Images/partitions.png",bbox_inches='tight')
+    fig.savefig("./Images/partitions.png",bbox_inches='tight', dpi=300)
 
     return trainloaders, valloaders, testloader, features

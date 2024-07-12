@@ -3,7 +3,7 @@ dataset:
   # dataset config
   set: "flwrlabs/femnist" # to match Hugging face datasets [cifar10, flwrlabs/femnist]
   batch_size: 32
-  partition: "iid" # iid, dirichlet, natural
+  partition: "natural" # iid, dirichlet, natural
   test_size: 0.2
   validation_size: 0.1 # applied after the test:train split
   dirichlet:
@@ -17,7 +17,7 @@ dataset:
 
 
 model:
-  lr: 0.01 # need to set up different configs based on different datasets.
+  lr: 0.1 # need to set up different configs based on different datasets.
   # model config
 
 
@@ -31,8 +31,8 @@ strategy:
   local_epochs: 5
   accept_failures: 0
   ditto_pers_epochs: 5 
-  ditto_lambda: 0.8
-  ditto_eta: 0.01
+  ditto_lambda: 0.836
+  ditto_eta: 0.1
 
 client:
   # client config

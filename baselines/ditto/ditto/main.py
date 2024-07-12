@@ -34,8 +34,6 @@ def main(cfg: DictConfig) -> None:
     trainloaders, valloaders, testloader, features = dataset.load_dataset(cfg=cfg)
 
     # 3. Defining clients
-
-    # NEED TO USE CONFIG HERE TO SELECT CORRESPONDING MODEL/ MODEL OPTIONS
     if cfg.dataset.set == "cifar10":
         model = models.Cifar10Net()
     elif cfg.dataset.set == "flwrlabs/femnist":
