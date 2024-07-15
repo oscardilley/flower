@@ -120,7 +120,7 @@ def set_parameters(net, parameters: List[np.ndarray]):
     net.load_state_dict(state_dict, strict=True)
 
 
-def train(net, trainloader, epochs: int, option = None):
+def train(net, trainloader, epochs: int, learning_rate: float, option = None):
     """
     Train the network on the training set.
     
@@ -132,6 +132,8 @@ def train(net, trainloader, epochs: int, option = None):
         Handles the loading of the training dataset.
     epochs: int
         The number of local epochs to train over.
+    learning_rate: float
+        The learning rate, for both the personal and global objective.
     option: dictionary
         Enables flagging to inform the function that alternative training regimes such as Ditto are to be used.
     """
@@ -159,7 +161,7 @@ def train(net, trainloader, epochs: int, option = None):
             return
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters())
+    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     net.train()
     for epoch in range(epochs):
         correct, total, epoch_loss = 0, 0, 0.0
@@ -173,7 +175,7 @@ def train(net, trainloader, epochs: int, option = None):
             if option is not None:
                 if option["opt"] == "ditto":
                     # Ditto personalised updates, used https://discuss.pytorch.org/t/updatation-of-parameters-without-using-optimizer-step/34244/15
-                    ditto_manual_update(option["eta"], option["lambda"], option["global_params"])
+                    ditto_manual_update(learning_rate, option["lambda"], option["global_params"])
             else:
                 optimizer.step()
             # Train metrics:

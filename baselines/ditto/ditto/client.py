@@ -71,12 +71,12 @@ class FlowerClient(fl.client.NumPyClient):
         print(f"[Client {self.cid}, round {server_round}] fit, config: {config}")
         models.set_parameters(self.net, parameters)
         # Training and storing the parameters at the end of training.
-        self.train(self.net, self.trainloader, epochs=local_epochs)
+        self.train(self.net, self.trainloader, epochs=local_epochs, learning_rate=config['eta'])
         params = self.get_parameters(self.net)
         # Additional epochs training the personalised parameters.
         models.set_parameters(self.net, self.per_params)
-        opts = {"opt": "ditto", "lambda": config['lambda'], "eta": config['eta'], "global_params": params}
-        self.train(self.net, self.trainloader, epochs=int(config['s']), option=opts)                                                         
+        opts = {"opt": "ditto", "lambda": config['lambda'], "global_params": params}
+        self.train(self.net, self.trainloader, epochs=int(config['s']), learning_rate=config['eta'], option=opts)                                                         
         # Updating personalised params stored:
         self.per_params = self.get_parameters(self.net)
         personal_parameters["client_"+str(self.cid)] = self.per_params # storing the parameters

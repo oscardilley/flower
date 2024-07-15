@@ -89,7 +89,7 @@ def main(cfg: DictConfig) -> None:
         fraction_fit=cfg.strategy.fraction_fit, # sample all clients for training
         fraction_evaluate=cfg.strategy.fraction_evaluate, # Disabling federated evaluation
         min_fit_clients=int(cfg.strategy.num_clients*cfg.strategy.fraction_fit), # never sample less that this for training
-        min_evaluate_clients=int(cfg.strategy.num_clients*cfg.strategy.fraction_fit), # never sample less than this for evaluation
+        min_evaluate_clients=int(cfg.strategy.num_clients*cfg.strategy.fraction_evaluate), # never sample less than this for evaluation
         min_available_clients=cfg.strategy.num_clients, # has to wait until all clients are available
         accept_failures = bool(cfg.strategy.accept_failures),
         initial_parameters=fl.common.ndarrays_to_parameters(models.get_parameters(model)),
@@ -105,7 +105,7 @@ def main(cfg: DictConfig) -> None:
     fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=cfg.strategy.num_clients,
-        config=fl.server.ServerConfig(num_rounds=cfg.strategy.num_clients), 
+        config=fl.server.ServerConfig(num_rounds=cfg.strategy.num_rounds), 
         strategy=ditto,
         client_resources=client_resources,
     )
