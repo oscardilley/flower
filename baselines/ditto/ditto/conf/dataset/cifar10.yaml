@@ -1,0 +1,9 @@
+  set: "cifar10" # to match Hugging face datasets [cifar10, flwrlabs/femnist]
+  batch_size: 32
+  partition: "iid" # iid, dirichlet
+  test_size: 0.2
+  validation_size: 0.1 # applied after the test:train split
+  dirichlet:
+    alpha: 0.5
+    self_balancing: 1
+    min_partition: 10

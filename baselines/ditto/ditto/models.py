@@ -95,12 +95,26 @@ class FEMNISTNet(nn.Module):
         return x
 
 def get_parameters(net) -> List[np.ndarray]:
-    """taking state_dict values to numpy (state_dict holds learnable parameters) """
+    """taking state_dict values to numpy (state_dict holds learnable parameters).
+
+    Parameters
+    ----------
+    net: model class
+        The instance of the model
+    """
     return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
 
 def set_parameters(net, parameters: List[np.ndarray]):
-    """ Setting the new parameters in the state_dict from numpy that flower operated on """
+    """ Setting the new parameters in the state_dict from numpy that flower operated on.
+
+    Parameters
+    ----------
+    net: model class
+        The instance of the model
+    parameters: model weights
+        The parameters to set in the state dictionary.
+    """
     params_dict = zip(net.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
@@ -110,15 +124,31 @@ def train(net, trainloader, epochs: int, option = None):
     """
     Train the network on the training set.
     
-    Inputs:
-        net - the instance of the model
-        trainloader - a pytorch DataLoader object.
-        epochs - the number of local epochs to train over
-        option - a flag to enable alternative training regimes such as ditto
+    Parameters
+    ----------
+    net: model class
+        The instance of the model
+    trainloader: PyTorch DataLoader object.
+        Handles the loading of the training dataset.
+    epochs: int
+        The number of local epochs to train over.
+    option: dictionary
+        Enables flagging to inform the function that alternative training regimes such as Ditto are to be used.
     """
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     def ditto_manual_update(lr, lam, glob):
-        """ Manual parameter updates for ditto """
+        """ Manual parameter updates for ditto.
+
+        Parameters
+        ----------
+        lr: float
+            The learning rate.
+        lam: float
+            Ditto hyperparameter controlling interpolation between local and global models.
+        glob: model weights
+            The global model parameters.
+        """
         with torch.no_grad():
             counter = 0
             q = [torch.from_numpy(g).to(DEVICE) for g in glob]
@@ -157,19 +187,23 @@ def train(net, trainloader, epochs: int, option = None):
 
 
 
-def test(net, testloader, sensitive_labels=[]):
+def test(net, testloader):
     """
     Evaluate the network on the inputted test set and determine the equalised odds for each protected group.
     
-    Inputs:
-        net - the instance of the model
-        testloader - a pytorch DataLoader object.
-        sensitive_labels - a list of the class indexes associated with the protected groups in question.
+    Parameters
+    ----------
+    net: model class
+        The instance of the model
+    testloader: PyTorch DataLoader object
+        Handles loading of the testset.
 
-    Outputs:
-        loss - average loss 
-        accuracy - accuracy calculated as the number of correct classificatins out of the total
-        group_performance - a list of equalised odds measurers for each protected group given.
+    Returns
+    ----------
+    loss: float
+        The average loss.
+    accuracy: float 
+        Accuracy calculated as the number of correct classificatins out of the total
     """
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     criterion = torch.nn.CrossEntropyLoss()

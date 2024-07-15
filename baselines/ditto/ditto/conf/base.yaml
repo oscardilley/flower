@@ -1,19 +1,7 @@
 ---
-dataset:
-  # dataset config
-  set: "flwrlabs/femnist" # to match Hugging face datasets [cifar10, flwrlabs/femnist]
-  batch_size: 32
-  partition: "natural" # iid, dirichlet, natural
-  test_size: 0.2
-  validation_size: 0.1 # applied after the test:train split
-  dirichlet:
-    alpha: 0.5
-    self_balancing: 1
-    min_partition: 10
-
-
-# need to set up database specific config groups
-
+defaults:
+  - dataset: femnist # femnist, cifar10
+  - _self_ # primary config values will override those from defaults list
 
 
 model:
@@ -22,8 +10,7 @@ model:
 
 
 strategy:
-  _target_: # points to your strategy (either custom or exiting in Flower)
-  # rest of strategy config
+  _target_: ditto.strategy.Ditto
   num_rounds: 5
   num_clients: 10
   fraction_fit: 0.3

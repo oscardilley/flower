@@ -24,8 +24,8 @@ from flwr.common.logger import log
 from logging import WARNING
 
 class ConfigErrorException(Exception):
+    """ A custom exceptionn for handling config exceptions."""
     pass
-
 
 def load_dataset(cfg):
     """ Handling config options to return the correct dataloaders
@@ -33,6 +33,11 @@ def load_dataset(cfg):
     from Ditto paper: "We randomly split local data on each device into 72% train, 8% validation, 
     and 20% test sets, and report all results on test data" For FEMNIST, all results reported
     in the main paper are from the natural partition.
+
+    Parameters
+    ----------
+    cfg : DictConfig
+        An omegaconf object that stores the hydra config.
     """
     # Transforms:
     cifar10_transforms = transforms.Compose(
@@ -45,8 +50,18 @@ def load_dataset(cfg):
                 "cifar10": None}
 
     def apply_transforms(batch):
-        """Apply transforms to the partition from FederatedDataset."""
-        # can add some better, config based selection in here
+        """Apply transforms to the partition from FederatedDataset.
+
+        Parameters
+        ----------
+        batch: DataSet dictionary
+            Batch before necessary transforms.
+
+        Returns
+        ----------
+        batch: DataSet dictionary
+            The transformed batch.
+        """
         if cfg.dataset.set == "cifar10":
             batch["img"] = [cifar10_transforms(img) for img in batch["img"]]
         elif cfg.dataset.set == "flwrlabs/femnist":

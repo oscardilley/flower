@@ -27,8 +27,6 @@ def main(cfg: DictConfig) -> None:
     """
     # 1. Print parsed config
     print(OmegaConf.to_yaml(cfg))
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}")
 
     # 2. Preparing dataset
     trainloaders, valloaders, testloader, features = dataset.load_dataset(cfg=cfg)
@@ -40,6 +38,9 @@ def main(cfg: DictConfig) -> None:
         model = models.FEMNISTNet()
     else:
         raise dataset.ConfigErrorException("Invalid dataset passed through Hydra")
+
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"Training on {DEVICE} using PyTorch {torch.__version__} and Flower {fl.__version__}")
     net = model.to(DEVICE)
     client_fn = client.gen_client_fn(trainloaders, valloaders, net, models.test, models.train) 
 
@@ -47,6 +48,11 @@ def main(cfg: DictConfig) -> None:
     def fit_config(server_round: int):
         """
         Return training configuration dict for each round.
+
+        Parameters
+        ----------
+        server_round : int
+            Tracking the current server round.
         """
         config = {
             "server_round": server_round, # The current round of federated learning
@@ -59,6 +65,15 @@ def main(cfg: DictConfig) -> None:
         """
         Used for centralised evaluation. This is enacted by flower before the Federated Evaluation.
         Runs initially before FL begins as well.
+
+        Parameters
+        ----------
+        server_round : int
+            Tracking the current server round.
+        parameters: fl.common.NDArrays
+            The global model parameters at the end of the server round.
+        config: Dict
+            The centralised evaluation configuration dictionary.
         """
         models.set_parameters(net, parameters)
         loss, accuracy = models.test(net, testloader)

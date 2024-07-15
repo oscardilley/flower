@@ -16,13 +16,14 @@ class FlowerClient(fl.client.NumPyClient):
     """
     Defines the client behaviour for the Ditto strategy.
 
-    Attributes:
-        cid - client id for dynamic client loading without occupying excessive memory.
-        net - a nn.Module derived object defining an instance of the neural net/model.
-        trainloader - pytorch DataLoader object containing the local train dataset.
-        valloader - pytorch DataLoader object containing the local test dataset.
-        test - bespoke test function for the dataset used, defined in *_net.py files.
-        train - bespoke train function for the dataset used, defined in *_net.py files.
+    Attributes
+    ----------
+    cid - client id for dynamic client loading and identifying clients without occupying excessive memory.
+    net - an instance of the neural net/model.
+    trainloader - pytorch DataLoader object for loading the local train dataset.
+    valloader - pytorch DataLoader object for loading the local test dataset.
+    test - bespoke test function to validate the model.
+    train - bespoke function to train the model.
 
     Methods:
         get_parameters - returns the current parameters of self.net
@@ -46,14 +47,19 @@ class FlowerClient(fl.client.NumPyClient):
         """
         Obtain strategy information, orchestrates training and collects data.
 
-        Inputs:
-        parameters - the new set of parameters from the aggregating server.
-        config - a dictionary passed from the strategy indicating the strategy's characteristics.
+        Parameters
+        ----------
+        parameters: model weights
+            The new set of parameters from the aggregating server.
+        config: Dict
+            Dictionary passed from the strategy indicating the strategy's characteristics.
 
-        Outputs: 
-            params - updated parameters after E local epochs.
-            len(self.trainloader)
-            {...} a dict containing key measurements required for fairness calculation and strategy behaviour.
+        Returns
+        ----------
+        params: model weights
+            Updated parameters after E local epochs.
+        Length of the trainloader.
+        A dictionary containing key measurements required for fairness calculation and strategy behaviour.
         """
         # Unpacking config parameters:
         server_round = config["server_round"]
@@ -86,9 +92,37 @@ class FlowerClient(fl.client.NumPyClient):
 def gen_client_fn(trainloaders, valloaders, net, test, train) -> Callable[[str], FlowerClient]:
     """
     Instances of clients are only created when required to avoid depleting RAM.
+
+    Parameters
+    ----------
+    trainloaders: List of PyTorch DataLoader objects.
+        The list of trainloaders for each client
+    valloaders: List of PyTorch DataLoader objects.
+        The corresponding list of vallidation DataLoaders
+    net: model class
+        The instance of the model to be trained.
+    test: function
+        The test function for model validation.
+    train: function
+        The model training function.
+
+    Parameters
+    ----------
+    client_fn : function
+        A function that returns an instance of a Flower client.
     """
     def client_fn(cid:str) -> FlowerClient:
-        """ Creating a single flower client"""
+        """ Creating a single flower client.
+
+        Parameters
+        ----------
+        cid: int
+            The unique client ID.
+
+        Returns
+        ----------
+        An instance of a flower client corresponding to the input cid.
+        """
         return FlowerClient(cid, net, trainloaders[int(cid)], valloaders[int(cid)], test, train).to_client()
 
     return client_fn
