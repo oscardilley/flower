@@ -1,0 +1,20 @@
+dataset:
+  set: flwrlabs/femnist
+  batch_size: 32
+  partition: natural
+  test_size: 0.2
+  validation_size: 0.1
+model:
+  lr: 0.1
+strategy:
+  _target_: ditto.strategy.Ditto
+  num_rounds: 5
+  num_clients: 10
+  fraction_fit: 0.3
+  fraction_evaluate: 0.0
+  local_epochs: 5
+  accept_failures: 0
+  ditto_pers_epochs: 5
+  ditto_lambda: 0.836
+  ditto_eta: 0.1
+client: null

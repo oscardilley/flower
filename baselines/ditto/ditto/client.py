@@ -1,16 +1,15 @@
 """Defining client class and a function to construct such clients.
 """
+import hydra
+from omegaconf import DictConfig, OmegaConf
 import flwr as fl
 from typing import Callable, List
 import numpy as np
 import torch
 import models
 
-# The storage mechanism for the personalised parameters
-
-# Still needs figuring out how to use hydra for this
-NUM_CLIENTS = 10
-personal_parameters = [None for client in range(NUM_CLIENTS)] 
+# Global client personal parameter storage mechanism (would be stored locally at the client if we were not using simulation):
+personal_parameters = {}
 
 class FlowerClient(fl.client.NumPyClient):
     """
@@ -64,8 +63,9 @@ class FlowerClient(fl.client.NumPyClient):
         # Unpacking config parameters:
         server_round = config["server_round"]
         local_epochs = config["local_epochs"]
-        self.per_params = personal_parameters[int(self.cid)] # loading saved personal params
-        if self.per_params == None:
+        if "client_"+str(self.cid) in personal_parameters:
+            self.per_params = personal_parameters["client_"+str(self.cid)] # loading saved personal params
+        else:
             print(f"Client {self.cid} pers param initialisation")
             self.per_params = parameters
         print(f"[Client {self.cid}, round {server_round}] fit, config: {config}")
@@ -79,7 +79,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.train(self.net, self.trainloader, epochs=int(config['s']), option=opts)                                                         
         # Updating personalised params stored:
         self.per_params = self.get_parameters(self.net)
-        personal_parameters[int(self.cid)] = self.per_params # storing the parameters
+        personal_parameters["client_"+str(self.cid)] = self.per_params # storing the parameters
         # Performing federated evaluation on the clients that are sampled for training:
         print(f"[Client {self.cid}] evaluate, config: {config}")
         loss, accuracy = self.test(self.net, self.valloader)
