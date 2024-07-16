@@ -8,9 +8,6 @@ from torch.utils.data import DataLoader
 from typing import List
 from collections import OrderedDict
 
-
-# Need to change to have the different models for the different datasets
-
 class Cifar10Net(nn.Module):
     """
     A CNN consisting of (in order):
@@ -160,8 +157,9 @@ def train(net, trainloader, epochs: int, learning_rate: float, option = None):
                 counter += 1
             return
 
+    personal_flag = ""
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(net.parameters())#, lr=learning_rate)
     net.train()
     for epoch in range(epochs):
         correct, total, epoch_loss = 0, 0, 0.0
@@ -174,8 +172,8 @@ def train(net, trainloader, epochs: int, learning_rate: float, option = None):
             loss.backward() # calculated the gradients
             if option is not None:
                 if option["opt"] == "ditto":
-                    # Ditto personalised updates, used https://discuss.pytorch.org/t/updatation-of-parameters-without-using-optimizer-step/34244/15
-                    ditto_manual_update(learning_rate, option["lambda"], option["global_params"])
+                    personal_flag = "Ditto Personalised "
+                    ditto_manual_update(learning_rate, option["lambda"], option["global_params"]) # calling Ditto personalised updates
             else:
                 optimizer.step()
             # Train metrics:
@@ -184,7 +182,7 @@ def train(net, trainloader, epochs: int, learning_rate: float, option = None):
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
         epoch_loss /= len(trainloader.dataset)
         epoch_acc = correct / total
-        print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
+        print(f"{personal_flag}Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
     return
 
 

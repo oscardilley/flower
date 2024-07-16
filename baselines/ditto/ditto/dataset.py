@@ -117,6 +117,6 @@ def load_dataset(cfg):
         cmap="tab20b",
         title="Sample Partition Labels Distributions"
     )
-    fig.savefig("./Images/partitions.png",bbox_inches='tight', dpi=300)
+    fig.savefig("./ditto/Results/Images/partitions.png",bbox_inches='tight', dpi=300)
 
     return trainloaders, valloaders, testloader, features

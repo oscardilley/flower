@@ -84,9 +84,7 @@ class FlowerClient(fl.client.NumPyClient):
         print(f"[Client {self.cid}] evaluate, config: {config}")
         loss, accuracy = self.test(self.net, self.valloader)
 
-        return params, len(self.trainloader), {"cid":int(self.cid), 
-                                               "accuracy": float(accuracy), 
-                                               "loss": float(loss)}
+        return params, len(self.trainloader), {"cid":int(self.cid), "accuracy": float(accuracy), "loss": float(loss), "round": server_round}
 
 
 def gen_client_fn(trainloaders, valloaders, net, test, train) -> Callable[[str], FlowerClient]:

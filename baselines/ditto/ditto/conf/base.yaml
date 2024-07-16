@@ -15,9 +15,9 @@ strategy:
   num_clients: 100
   fraction_fit: 0.1
   fraction_evaluate: 0.0
-  local_epochs: 1
+  local_epochs: 2
   accept_failures: 0
-  ditto_pers_epochs: 1
+  ditto_pers_epochs: 2
   ditto_lambda: 1
   ditto_eta: 0.1
 
