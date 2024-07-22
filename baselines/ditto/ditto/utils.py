@@ -15,13 +15,16 @@ def accuracy_plot(cfg):
     CLIENTS = cfg.strategy.num_clients
     SELECTED_CLIENTS = int(cfg.strategy.num_clients * cfg.strategy.fraction_fit)
     # Spoof data:
-    fed_eval_mean_spoof = np.sort(np.random.uniform(0, 1, size=ROUNDS))
-    fed_eval_spoof = [np.abs(np.tanh(np.random.normal(loc=fed_eval_mean_spoof[j], scale=0.1, size=SELECTED_CLIENTS))) for j in range(ROUNDS)]
-    central_spoof = [(np.mean(i)+np.random.normal(loc=0, scale=0.03)) for i in fed_eval_spoof]
-    data = {"central_eval": central_spoof,
-        "federated_eval":fed_eval_spoof,
-        "federated_eval_mean":fed_eval_mean_spoof}
+    # fed_eval_mean_spoof = np.sort(np.random.uniform(0, 1, size=ROUNDS))
+    # fed_eval_spoof = [np.abs(np.tanh(np.random.normal(loc=fed_eval_mean_spoof[j], scale=0.1, size=SELECTED_CLIENTS))) for j in range(ROUNDS)]
+    # central_spoof = [(np.mean(i)+np.random.normal(loc=0, scale=0.03)) for i in fed_eval_spoof]
+    # data = {"central_eval": central_spoof,
+    #     "federated_eval":fed_eval_spoof,
+    #     "federated_eval_mean":fed_eval_mean_spoof}
     # Data processing:
+    with open('./ditto/Results/results.json', "r") as file:
+        data = json.load(file)
+    print(data)
     rounds = [i+1 for i in range(ROUNDS)]
     central_eval = data["central_eval"]
     fed_eval_mean = np.array([np.mean(i) for i in data["federated_eval"]])

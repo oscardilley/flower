@@ -1,16 +1,13 @@
----
-defaults:
-  - dataset: femnist # femnist, cifar10
-  - _self_ # primary config values will override those from defaults list
-
-
-model:
-# model config
-
-
+dataset:
+  set: flwrlabs/femnist
+  batch_size: 32
+  partition: natural
+  test_size: 0.2
+  validation_size: 0.1
+model: null
 strategy:
   _target_: ditto.strategy.Ditto
-  num_rounds: 50
+  num_rounds: 100
   num_clients: 100
   fraction_fit: 0.1
   fraction_evaluate: 0.0
@@ -19,6 +16,4 @@ strategy:
   ditto_pers_epochs: 5
   ditto_lambda: 1
   ditto_eta: 0.02
-
-client:
-  # client config
+client: null

@@ -83,7 +83,7 @@ def main(cfg: DictConfig) -> None:
         loss, accuracy = models.test(net, testloader)
         print(f"Server-side evaluation loss {loss} / accuracy {accuracy}")
         if server_round > 0:
-            data["central_eval"][server_round - 1] = accuracy # saving data to dict for json
+            data["central_eval"][server_round - 1] = float(accuracy) # saving data to dict for json
 
         return loss, {"accuracy": accuracy}
     
@@ -103,8 +103,8 @@ def main(cfg: DictConfig) -> None:
         server_round = metrics[0][1]["round"]
         accuracies = np.array([metric["accuracy"] for _,metric in metrics])
         fed_eval_mean = np.mean(accuracies)
-        data["federated_eval"][server_round - 1] = accuracies # data logging
-        data["federated_eval_mean"][server_round - 1] = fed_eval_mean
+        data["federated_eval"][server_round - 1] = list(accuracies) # data logging
+        data["federated_eval_mean"][server_round - 1] = float(fed_eval_mean)
         fed_eval_mean = np.mean(accuracies)
         print(f"Mean federated evaluation accuracy {fed_eval_mean}")
 
@@ -141,8 +141,14 @@ def main(cfg: DictConfig) -> None:
     )
 
     # 6. Saving results
+    
+    # put save path in config
     with open('./ditto/Results/results.json', "w") as outfile:
         data = json.dump(data, outfile)
+
+    # it would be interesting to collect meta data on number of samples and number of times participating
+
+
     # Call plotting functions from util
 
 if __name__ == "__main__":
